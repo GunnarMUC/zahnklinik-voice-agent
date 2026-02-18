@@ -1,0 +1,14 @@
+# Python 3.10+ erforderlich (LiveKit Agents SDK)
+# LiveKit Agents SDK
+livekit-agents[openai,silero,turn-detector]~=1.3
+
+# Piper TTS Plugin
+livekit-plugins-piper-tts
+
+# Faster-Whisper (lokales STT)
+faster-whisper
+soundfile
+numpy
+
+# Umgebungsvariablen
+python-dotenv
