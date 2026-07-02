@@ -4,6 +4,7 @@ LiveKit Agents SDK mit Faster-Whisper (STT), Ollama (LLM), Piper (TTS).
 """
 
 import logging
+import urllib.request
 from typing import Any
 
 import config
@@ -31,7 +32,9 @@ Du hilfst Patienten bei Terminanfragen, allgemeinen Fragen zur Praxis und leites
 Wenn sich ein Patient mit seinem Namen vorstellt, rufe die Funktion store_patient_name auf, um den Namen zu speichern.
 Verwende den gespeicherten Namen in der weiteren Ansprache.
 
-Für Terminanfragen nutze die verfügbaren Tools: check_appointment_availability, book_appointment, cancel_appointment."""
+Für Terminanfragen nutze die verfügbaren Tools. 
+Beachte: Die Terminbuchung ist derzeit eine Demo ohne Anbindung an ein echtes Praxis-System.
+Bei Buchungsanfragen weise den Patienten stets darauf hin, dass das Praxisteam sich zur Bestätigung melden wird."""
 
 
 class ZahnklinikAgent(Agent):
@@ -81,11 +84,10 @@ class ZahnklinikAgent(Agent):
         Args:
             date: Optionales Datum im Format JJJJ-MM-TT. Wenn nicht angegeben, wird das aktuelle Datum verwendet.
         """
-        # Platzhalter-Implementierung
         return {
             "available": True,
             "slots": ["2025-02-20 10:00", "2025-02-20 14:00", "2025-02-21 09:00"],
-            "message": "Verfügbare Termine (Platzhalter).",
+            "message": "Demo-Umgebung — Termin-Slots sind Beispiele ohne echte Verfügbarkeit.",
         }
 
     @function_tool()
@@ -102,12 +104,11 @@ class ZahnklinikAgent(Agent):
             datetime_slot: Gewünschter Termin (z.B. "2025-02-20 10:00").
             patient_name: Optional - Name des Patienten, falls bekannt.
         """
-        # Platzhalter-Implementierung
         return {
-            "success": True,
-            "appointment_id": "placeholder",
+            "success": False,
+            "appointment_id": "demo-buchung",
             "datetime": datetime_slot,
-            "message": "Termin wurde gebucht (Platzhalter).",
+            "message": "Demo-Buchung: Kein echter Termin gespeichert. Terminvergabe-System muss angebunden werden.",
         }
 
     @function_tool()
@@ -122,10 +123,9 @@ class ZahnklinikAgent(Agent):
         Args:
             appointment_id: Die ID des zu stornierenden Termins.
         """
-        # Platzhalter-Implementierung
         return {
-            "success": True,
-            "message": f"Termin {appointment_id} wurde storniert (Platzhalter).",
+            "success": False,
+            "message": f"Demo-Stornierung: Kein echter Termin {appointment_id} storniert. Terminvergabe-System muss angebunden werden.",
         }
 
 
@@ -157,6 +157,21 @@ def create_session() -> AgentSession:
     )
 
 
+def _verify_services() -> None:
+    """Warn at startup if Ollama or Piper TTS are unreachable."""
+    try:
+        urllib.request.urlopen(f"{config.OLLAMA_BASE_URL}/models", timeout=3)
+        logger.info("Ollama erreichbar unter %s", config.OLLAMA_BASE_URL)
+    except Exception:
+        logger.warning("Ollama nicht erreichbar unter %s", config.OLLAMA_BASE_URL)
+
+    try:
+        urllib.request.urlopen(config.PIPER_URL, timeout=3)
+        logger.info("Piper TTS erreichbar unter %s", config.PIPER_URL)
+    except Exception:
+        logger.warning("Piper TTS nicht erreichbar unter %s", config.PIPER_URL)
+
+
 server = AgentServer()
 
 
@@ -164,13 +179,10 @@ server = AgentServer()
 async def zahnklinik_agent(ctx: agents.JobContext) -> None:
     """Entrypoint für den Zahnklinik Voice Agent."""
     logger.info("Zahnklinik Agent gestartet für Room %s", ctx.room.name)
+    _verify_services()
     session = create_session()
 
-    patient_name = None
-    if session.userdata and "patient_name" in session.userdata:
-        patient_name = session.userdata.get("patient_name")
-
-    agent = ZahnklinikAgent(patient_name=patient_name)
+    agent = ZahnklinikAgent(patient_name=None)
 
     await session.start(
         room=ctx.room,
@@ -183,5 +195,11 @@ async def zahnklinik_agent(ctx: agents.JobContext) -> None:
     )
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """CLI-Einstiegspunkt. Validiert Konfiguration und startet den Agent-Server."""
+    config._validate_config()
     agents.cli.run_app(server)
+
+
+if __name__ == "__main__":
+    main()

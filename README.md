@@ -1,104 +1,134 @@
-# Zahnklinik Voice Agent
+# 🦷 Zahnklinik Voice Agent
 
-Lokaler Echtzeit-Sprach-Assistent für Zahnkliniken mit LiveKit Agents SDK.
+**Lokaler Echtzeit-Sprachassistent für Zahnarztpraxen** — vollständig offline, datenschutzkonform, deutschsprachig.
 
-## Stack
+Patienten sprechen natürlich, der Agent versteht, antwortet und hilft bei Terminanfragen — ohne dass ein Byte Audio die Praxis verlässt.
 
-| Komponente | Technologie |
-|------------|-------------|
-| Framework | LiveKit Agents SDK (Python) |
-| STT (Hören) | Faster-Whisper (lokal) |
-| LLM (Denken) | Ollama mit llama3.1 (lokal) |
-| TTS (Sprechen) | Piper (lokal) |
+---
 
-## Voraussetzungen
+## Warum dieser Agent?
 
-- **Python 3.10+**
-- **Ollama** mit Modell `llama3.1`
-- **Piper TTS Server** (deutsche Stimme empfohlen)
-- **LiveKit** Account (für dev/start)
+| Eigenschaft | Zahnklinik Voice Agent | Cloud-basierte Alternativen |
+|---|---|---|
+| **Sprachverarbeitung** | 100% lokal (Faster-Whisper + Ollama + Piper) | Audio-Daten gehen an Drittanbieter |
+| **Datenschutz / DSGVO** | Keine externen API-Calls für STT/LLM/TTS | Patientendaten in US-Clouds |
+| **Kosten** | Einmalige Hardware, keine API-Gebühren | Pro-Minute-, Pro-Token-Kosten |
+| **Latenz** | Lokal, < 2s Antwortzeit | Netzwerkabhängig |
+| **Deutsche Qualität** | Optimiert für Deutsch (STT + TTS) | Oft englisch-zentriert |
+| **Kontrollierbarkeit** | Vollständig selbst hostbar | Vendor-Lock-in |
 
-## Installation
+---
+
+## So funktioniert's
+
+```
+Patient spricht → Faster-Whisper (STT) → Ollama llama3.1 (LLM) → Piper (TTS) → Antwort
+                       ↑                          ↑
+                 Silero VAD               Termin-Tools
+```
+
+- **Faster-Whisper** transkribiert Sprache auf Deutsch (lokal)
+- **Silero VAD** erkennt, wann der Patient zu Ende gesprochen hat
+- **Ollama (llama3.1)** versteht die Absicht und entscheidet über die Antwort
+- **Piper TTS** generiert eine deutschsprachige Sprachantwort
+- **LiveKit Agents** orchestriert den gesamten Echtzeit-Voice-Pipeline
+
+---
+
+## Schnellstart
+
+### Voraussetzungen
+
+- **Python 3.10+** mit [uv](https://docs.astral.sh/uv/)
+- **Ollama** installiert, Modell geladen: `ollama pull llama3.1`
+- **Piper TTS Server** mit deutscher Stimme: `python3 -m piper.http_server -m de_DE-thorsten-medium`
+- **LiveKit** Account (kostenloser Starter-Tier reicht)
+
+### Installation
 
 ```bash
-# Mit uv (empfohlen)
+git clone https://github.com/GunnarMUC/zahnklinik-voice-agent.git
+cd zahnklinik-voice-agent
+
 uv venv --python 3.12
 uv pip install -r requirements.txt
 
-# Oder mit pip
-pip install -r requirements.txt
+cp .env.example .env.local
+# LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in .env.local eintragen
+
+uv run agent.py download-files   # STT/Turn-Detection-Modelle laden
 ```
+
+### Ausführung
+
+```bash
+./run.sh console          # Terminal-Modus (kein LiveKit-Server nötig)
+./run.sh dev              # Entwicklungsmodus mit LiveKit
+./run.sh start            # Produktionsmodus
+./run.sh download-files   # Modelle herunterladen
+```
+
+---
+
+## Architektur
+
+```
+zahnklinik-voice-agent/
+├── agent.py           # ZahnklinikAgent, Tools, AgentSession, CLI-Logik
+├── config.py          # Konfiguration via .env.local + Validierung
+├── whisper_stt.py     # Faster-Whisper STT-Adapter für LiveKit
+├── pyproject.toml     # PEP 621 Projekt-Metadaten + Ruff-Config
+├── requirements.txt   # Abhängigkeiten (pip-kompatibel)
+├── run.sh             # Start-Skript für alle Modi
+├── .env.example       # Vorlage für Umgebungsvariablen
+└── README.md          # Diese Datei
+```
+
+---
 
 ## Konfiguration
 
-Kopiere `.env.example` nach `.env.local` und trage die Werte ein:
+Alle Einstellungen via `.env.local` (siehe `.env.example`):
+
+| Variable | Standard | Beschreibung |
+|---|---|---|
+| `LIVEKIT_URL` | – | LiveKit Server URL (wss://...) |
+| `LIVEKIT_API_KEY` | – | LiveKit API Key |
+| `LIVEKIT_API_SECRET` | – | LiveKit API Secret |
+| `OLLAMA_BASE_URL` | `http://localhost:11434/v1` | Ollama API Endpunkt |
+| `OLLAMA_MODEL` | `llama3.1` | Verwendetes LLM-Modell |
+| `PIPER_URL` | `http://localhost:5000/` | Piper TTS Server |
+| `WHISPER_MODEL` | `base` | Faster-Whisper Modellgröße |
+| `WHISPER_LANGUAGE` | `de` | Sprache (de = Deutsch) |
+| `WHISPER_DEVICE` | `auto` | Device (auto/cpu/cuda) |
+
+---
+
+## Aktueller Status
+
+- [x] Echtzeit-Voice-Pipeline (STT → LLM → TTS)
+- [x] Deutsche Sprache optimiert
+- [x] Patientennamen-Erkennung (Chat-Kontext)
+- [x] Turn Detection (erkennt Sprechende)
+- [x] Voice Activity Detection
+- [x] Config-Validierung beim Start
+- [x] Health-Checks für Ollama und Piper
+- [ ] Termin-Tools mit echtem Kalender-Backend
+- [ ] Docker-Deployment
+- [ ] Unit-Tests
+- [ ] Noise Cancellation für Telefonie
+
+---
+
+## Entwicklung
 
 ```bash
-cp .env.example .env.local
+uv run ruff check .        # Linting
+uv run ruff format .       # Auto-Formatierung
 ```
 
-| Variable | Beschreibung |
-|----------|--------------|
-| `LIVEKIT_URL` | LiveKit Server URL (z.B. wss://xxx.livekit.cloud) |
-| `LIVEKIT_API_KEY` | LiveKit API Key |
-| `LIVEKIT_API_SECRET` | LiveKit API Secret |
-| `PIPER_URL` | Piper TTS Server (Standard: http://localhost:5000/) |
-| `OLLAMA_BASE_URL` | Ollama API (Standard: http://localhost:11434/v1) |
-| `OLLAMA_MODEL` | Ollama Modell (Standard: llama3.1) |
-| `WHISPER_MODEL` | Faster-Whisper Modell (base, small, medium) |
-| `WHISPER_LANGUAGE` | STT-Sprache (Standard: de) |
+---
 
-## Dienste starten
+## Lizenz & Kontakt
 
-### Ollama
-```bash
-ollama run llama3.1
-```
-
-### Piper TTS (mit deutscher Stimme)
-```bash
-# Piper installieren
-pip install piper-tts[http]
-
-# Deutsche Stimme herunterladen
-python3 -m piper.download_voices de_DE-thorsten-medium
-
-# Server starten
-python3 -m piper.http_server -m de_DE-thorsten-medium
-```
-
-## Ausführung
-
-```bash
-# Modelle herunterladen (Silero VAD, Turn Detector)
-uv run agent.py download-files
-
-# Console-Modus (Terminal, ohne LiveKit)
-uv run agent.py console
-
-# Dev-Modus (mit LiveKit, für Frontend/Playground)
-uv run agent.py dev
-
-# Produktion
-uv run agent.py start
-```
-
-## Features
-
-- **Chat-Kontext:** Merkt sich den Patientennamen über `store_patient_name`
-- **Termin-Tools (Platzhalter):**
-  - `check_appointment_availability` – Terminverfügbarkeit prüfen
-  - `book_appointment` – Termin buchen
-  - `cancel_appointment` – Termin stornieren
-
-## Projektstruktur
-
-```
-lnm/
-├── agent.py          # Haupt-Agent
-├── whisper_stt.py    # Faster-Whisper STT-Adapter
-├── config.py         # Konfiguration
-├── requirements.txt
-├── pyproject.toml
-└── .env.local        # Credentials (nicht committen)
-```
+Projekt von [GunnarMUC](https://github.com/GunnarMUC) — Fragen und Feedback willkommen.

@@ -7,7 +7,6 @@ import dataclasses
 import logging
 import os
 import time
-from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -20,7 +19,7 @@ from livekit.agents.utils import AudioBuffer
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclasses.dataclass
 class WhisperOptions:
     """Configuration options for WhisperSTT."""
 
@@ -151,7 +150,6 @@ class WhisperSTT(stt.STT):
                 best_of=1,
                 condition_on_previous_text=True,
                 vad_filter=False,
-                vad_parameters=dict(min_silence_duration_ms=500),
             )
 
             segments_list = list(segments)

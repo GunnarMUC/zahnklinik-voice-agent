@@ -4,10 +4,26 @@ Alle Werte können über Umgebungsvariablen überschrieben werden.
 """
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(".env.local")
+load_dotenv(Path(__file__).parent / ".env.local")
+
+
+def _validate_config() -> None:
+    """Raise clear errors if required environment variables are missing."""
+    missing = []
+    for var in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
+        if not os.getenv(var):
+            missing.append(var)
+    if missing:
+        msg = (
+            "Fehlende LiveKit-Umgebungsvariablen: "
+            + ", ".join(missing)
+            + ". Bitte .env.local prüfen (siehe .env.example)."
+        )
+        raise ValueError(msg)
 
 # LiveKit (erforderlich für dev/start)
 LIVEKIT_URL = os.getenv("LIVEKIT_URL", "")
