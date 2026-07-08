@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)n
+
 # 🦷 Zahnklinik Voice Agent
 
 **Lokaler Echtzeit-Sprachassistent für Zahnarztpraxen** — vollständig offline, datenschutzkonform, deutschsprachig.
