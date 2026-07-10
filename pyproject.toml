@@ -14,6 +14,9 @@ dependencies = [
 ]
 
 [project.scripts]
+authors = [
+    { name = "Gunnar Müller" }
+]
 zahnklinik-agent = "agent:main"
 
 [tool.ruff]
